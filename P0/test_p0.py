@@ -78,7 +78,7 @@ class TestP0(unittest.TestCase):
         self.check_expression(RE5, "abaabaa", True)
         self.check_expression(RE5, "baababaa", True)
 
-
+        self.check_expression(RE5, "aaa", False)
         self.check_expression(RE5, "aabaaaa", False)
         self.check_expression(RE5, "bbaabaabababaa", False)
     
