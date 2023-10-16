@@ -43,32 +43,55 @@ class FiniteAutomatonEvaluator():
         # Control de errores 
         if symbol not in self.automaton.symbols:
             raise ValueError("The symbol is not in the alphabet of the automaton")
-        
-        estados_nuevos = set()
+
+        posibles_estados = set()
+        estados_lambdas = set()
         for state in self.current_states:
-            estados_nuevos.update(self.automaton.get_transition(state,symbol))
+            posibles_estados = self.automaton.get_transition(state,symbol)
+            if posibles_estados is None:
+                continue
+            #for state2 in posibles_estados:
+            #    estados_lambdas.update(self._complete_lambdas(state2))
+        estados_lambdas.update(self._complete_lambdas(posibles_estados))
+        #Comprobar no vacios y union
+        #Actuañlizar self.current states y devolverlo
 
-        self._complete_lambdas(estados_nuevos)
-        self.current_states = estados_nuevos
-        
-        return 
-        
-        
+        if posibles_estados is not None:
+            posibles_estados.update(estados_lambdas)
 
+
+        posibles_estados.update(estados_lambdas)
+        self.current_states = posibles_estados
+
+        
+        return self.current_states
+        
+        
         
     def _complete_lambdas(self, set_to_complete):
         """
         Add states reachable with lambda transitions to the set.
-
-        {State('Empty', is_final=False)}
-        {State('1', is_final=False)}
-
+        
         Args:
             set_to_complete: Current set of states to be completed.
-        """
-         
 
-        
+        Returns:
+            set: The set of states including those reachable with lambda transitions.
+        """
+        # Inicializamos una cola con los estados
+        listaestados = set()
+        listaestados.update(set_to_complete)
+
+        for estado in set_to_complete:
+            estadosNuevos = self.automaton.get_transition(estado,None)
+            if estadosNuevos is None:
+                listaestados.add(estado)
+            else:
+                listaestados.update(self._complete_lambdas(set(estadosNuevos)))
+
+    
+        return listaestados
+
         
     def process_string(self, string):
         """

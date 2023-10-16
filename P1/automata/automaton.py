@@ -109,7 +109,7 @@ class Transitions(dict):
         """
             Checks if a transition defined by a start_state and a symbol is
             contained in Transitions.
-        """
+        
         if start_state not in self.__dict__.keys(): 
             return False 
         
@@ -117,7 +117,13 @@ class Transitions(dict):
             return False
         
         return True 
+        """
         
+        if start_state in self.keys():
+            if symbol in self[start_state].keys():
+                return True
+
+        return False
 
         
     def has_transition_to(self, start_state, symbol, end_state):
@@ -132,18 +138,15 @@ class Transitions(dict):
             Returns:
                 True/False
         """
+        
+        if start_state in self.keys():
+            if symbol in self[start_state].keys():
+                if end_state in self[start_state][symbol]:
+                    return True
 
-        if self is None or start_state is None or end_state is None:
-            return False
-
-
-        transiciones = self.get_all_transitions()
-        for transicion in transiciones:
-            estado_inicial, simbolo, estado_destino = transicion 
-            if estado_inicial == start_state and simbolo==symbol and estado_destino == end_state :
-                return True 
-            
         return False
+    
+    
 
 
     def get_transition(self, state, symbol):
@@ -158,6 +161,7 @@ class Transitions(dict):
                 set of states
         """
         # si el estado-simbolo no esta en el diccionario de transiciones 
+        '''
         if state not in self.__dict__.keys():
             return None 
         estados_finales = set()
@@ -166,6 +170,14 @@ class Transitions(dict):
             if estadoInicial == state and symbol in self.__dict__.get(state):
                 estados_finales.update(self.__dict__.get(state).get(symbol))
         return estados_finales
+        '''
+        
+        if self.has_transition(state, symbol):
+            return self[state][symbol]
+        return set()
+        
+        
+
     
     def get_all_transitions(self):
         """
