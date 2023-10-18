@@ -66,9 +66,9 @@ class TestEvaluatorFixed(TestEvaluatorBase):
         self._check_accept("Hell", should_accept=False)
         self._check_accept("llH", should_accept=False)
         self._check_accept("", should_accept=False)
-        self._check_accept("Hella", should_accept=False)
-        self._check_accept("aHello", should_accept=False)
-        self._check_accept("Helloa", should_accept=False)
+        self._check_accept("Hella", exception=ValueError)
+        self._check_accept("aHello", exception=ValueError)
+        self._check_accept("Helloa", exception=ValueError)
 
 
 class TestEvaluatorLambdas(TestEvaluatorBase):
@@ -95,7 +95,7 @@ class TestEvaluatorLambdas(TestEvaluatorBase):
     def test_lambda(self):
         """Test for a fixed string."""
         self._check_accept("", should_accept=True)
-        self._check_accept("a", should_accept=False)
+        self._check_accept("a", exception=ValueError)
 
 
 class TestEvaluatorNumber(TestEvaluatorBase):
