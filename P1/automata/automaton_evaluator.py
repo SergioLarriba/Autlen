@@ -38,59 +38,51 @@ class FiniteAutomatonEvaluator():
             symbol: Symbol to consume. Type: str
 
         """
-        #self.current_states = self.automaton.transitions.get_transition(self.current_states, symbol)
-        #self.current_states = self._complete_lambdas(self.current_states)
-        # Control de errores 
         if symbol not in self.automaton.symbols:
             raise ValueError("The symbol is not in the alphabet of the automaton")
-
-        posibles_estados = set()
-        estados_lambdas = set()
-        for state in self.current_states:
-            posibles_estados = self.automaton.get_transition(state,symbol)
-            if posibles_estados is None:
-                continue
-            #for state2 in posibles_estados:
-            #    estados_lambdas.update(self._complete_lambdas(state2))
-        estados_lambdas.update(self._complete_lambdas(posibles_estados))
-        #Comprobar no vacios y union
-        #Actuañlizar self.current states y devolverlo
-
-        if posibles_estados is not None:
-            posibles_estados.update(estados_lambdas)
-
-
-        posibles_estados.update(estados_lambdas)
-        self.current_states = posibles_estados
-
         
-        return self.current_states
+        transitions = set()
+        for i in self.current_states:
+            transitions.update(self.automaton.get_transition(i, symbol))
         
+        self.current_states = self._complete_lambdas(transitions)
         
-        
-    def _complete_lambdas(self, set_to_complete):
+    def _complete_lambdas(self, set_to_complete, visited=None):
         """
         Add states reachable with lambda transitions to the set.
-        
+
         Args:
             set_to_complete: Current set of states to be completed.
-
-        Returns:
-            set: The set of states including those reachable with lambda transitions.
+            visited: Set of states that have already been checked for lambda transitions.
         """
-        # Inicializamos una cola con los estados
-        listaestados = set()
-        listaestados.update(set_to_complete)
+        #import pdb;pdb.set_trace()
+        """
+        if visited is None:
+            visited = set()
 
-        for estado in set_to_complete:
-            estadosNuevos = self.automaton.get_transition(estado,None)
-            if estadosNuevos is None:
-                listaestados.add(estado)
+        next_states = set(set_to_complete)
+        for state in set_to_complete:
+            if state not in visited:
+                visited.add(state)
+                if self.automaton.has_transition(state, None):
+                    aux = self.automaton.get_transition(state, None)
+                    for i in aux:
+                        if i not in next_states:
+                            next_states.add(i)
+                            next_states.update(self._complete_lambdas({i}, visited))
+        return next_states
+        """
+        final_set = set()
+        final_set.update(set_to_complete)
+
+        for state in set_to_complete:
+            new_states = self.automaton.get_transition(state, None)
+            if new_states is None:
+                final_set.add(state)
             else:
-                listaestados.update(self._complete_lambdas(set(estadosNuevos)))
-
-    
-        return listaestados
+                final_set.update(self._complete_lambdas(set(new_states)))
+        
+        return final_set
 
         
     def process_string(self, string):

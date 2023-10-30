@@ -30,7 +30,7 @@ class TestREParser(unittest.TestCase):
     def test_star(self):
         """Test Kleene star."""
         evaluator = self._create_evaluator("a*.b*")
-
+        
         self._check_accept(evaluator, "", should_accept=True)
         self._check_accept(evaluator, "a", should_accept=True)
         self._check_accept(evaluator, "b", should_accept=True)
@@ -44,7 +44,7 @@ class TestREParser(unittest.TestCase):
         self._check_accept(evaluator, "bab", should_accept=False)
 
     def test_or(self):
-        """Test Kleene star."""
+        """Test Kleene or."""
         evaluator = self._create_evaluator("(a+b)*")
 
         self._check_accept(evaluator, "", should_accept=True)

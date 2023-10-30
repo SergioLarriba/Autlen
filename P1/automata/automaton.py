@@ -109,16 +109,8 @@ class Transitions(dict):
         """
             Checks if a transition defined by a start_state and a symbol is
             contained in Transitions.
-        
-        if start_state not in self.__dict__.keys(): 
-            return False 
-        
-        if symbol not in self.__dict__.get(start_state).keys():
-            return False
-        
-        return True 
         """
-        
+    
         if start_state in self.keys():
             if symbol in self[start_state].keys():
                 return True
@@ -161,17 +153,6 @@ class Transitions(dict):
                 set of states
         """
         # si el estado-simbolo no esta en el diccionario de transiciones 
-        '''
-        if state not in self.__dict__.keys():
-            return None 
-        estados_finales = set()
-        #Si no hay transicion para ese valor en el estado dado
-        for estadoInicial, _ in self.__dict__.items():
-            if estadoInicial == state and symbol in self.__dict__.get(state):
-                estados_finales.update(self.__dict__.get(state).get(symbol))
-        return estados_finales
-        '''
-        
         if self.has_transition(state, symbol):
             return self[state][symbol]
         return set()
@@ -280,6 +261,9 @@ class FiniteAutomaton():
     def to_deterministic(self):
         from automata.dfa import DeterministicFiniteAutomaton
         return DeterministicFiniteAutomaton.to_deterministic(self)
+    
+    def get_initial_state(self):
+        return self.initial_state 
     
     """
     Un automata tiene: estado inicial, final, transicion
