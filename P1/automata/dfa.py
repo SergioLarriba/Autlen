@@ -67,7 +67,7 @@ class DeterministicFiniteAutomaton(FiniteAutomaton):
             transitions.add_transition(current_state, symbol, dest_state)
             states.append(dest_state) 
         
-        """
+        
         # Añadir estado vacío y conectar las transiciones que faltan a él
         empty_state = State("empty", False)
         for symbol in finiteAutomaton.symbols:
@@ -76,7 +76,7 @@ class DeterministicFiniteAutomaton(FiniteAutomaton):
             for symbol in finiteAutomaton.symbols:
                 if not transitions.get_transition(state, symbol):
                     transitions.add_transition(state, symbol, empty_state)
-        """
+        
         print(f"Estados del automata {states}")
         
         dfa = FiniteAutomaton(initial_state, states, finiteAutomaton.symbols, transitions)
