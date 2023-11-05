@@ -6,69 +6,70 @@ class DeterministicFiniteAutomaton(FiniteAutomaton):
         
     @staticmethod
     def to_deterministic(finiteAutomaton):
-        """Returns an equivalent deterministic finite automaton."""
         from automata.automaton_evaluator import FiniteAutomatonEvaluator
+        from queue import Queue
+
         evaluator = FiniteAutomatonEvaluator(finiteAutomaton)
 
-        # Estado inicial del automata determinista 
+        # Estado inicial del automata determinista
         initial_state = frozenset(evaluator.current_states)
-        
-        # Diccionario para guardar la tabla de transiciones 
-        dfa_states = dict() 
-        # Hacer que los estados tengan un nombre unico 
-        # Set de estados para el nuevo automata 
-        new_states = set() 
-        new_states.add(initial_state)
-        empty_state = State("empty", False) # Estado sumidero 
-        new_states.add(empty_state)
 
-        # Cola para tratar los estados para procesr 
-        states_to_check = queue.Queue()
+        # Conjunto de transiciones del AFD
+        transitions = Transitions()
+
+        # Diccionario para guardar la tabla de transiciones
+        dfa_states = {
+            initial_state: State(' '.join(state.name for state in evaluator.current_states), any(state.is_final for state in initial_state))
+        }
+
+        # Estado sumidero
+        empty_state = State("empty", False)
+        dfa_states[frozenset()] = empty_state # Añadir el estado sumidero al diccionario de estados
+
+        # Cola para tratar los estados para procesar
+        states_to_check = Queue()
         states_to_check.put(initial_state)
         #import pdb; pdb.set_trace()
         # Mientras queden estados en la cola
         while not states_to_check.empty():
-            # Obtengo el conjunto de estados actual 
-            state = states_to_check.get()
+            # Obtengo el conjunto de estados actual
+            current_states_frozenset = states_to_check.get()
 
             for symbol in finiteAutomaton.symbols:
-                evaluator.current_states = state 
-                evaluator.process_symbol(symbol) 
+                evaluator.current_states = set(current_states_frozenset)  # Estado actual
+                evaluator.process_symbol(symbol)  # Procesar el símbolo
 
-                # Si el estado no esta en el diccionario -> lo añado 
-                if state not in dfa_states.keys():
-                    dfa_states[state] = dict() 
+                # Crear un frozenset para los nuevos estados después de la transición
+                new_states_frozenset = frozenset(evaluator.current_states)
 
-                if any(symbol in finiteAutomaton.transitions[s] for s in state): 
-                    # Añado el nuevo estado al diccionario 
-                    new_state = frozenset(evaluator.current_states)
-                    dfa_states[state][symbol] = new_state
+                # Crear un nuevo State object para el nuevo estado
+                new_state = State(' '.join(state.name for state in evaluator.current_states), any(state.is_final for state in evaluator.current_states))
+
+                # Añadir el nuevo estado al diccionario si no existe
+                if new_states_frozenset not in dfa_states and evaluator.current_states:
+                    dfa_states[new_states_frozenset] = new_state
+                    states_to_check.put(new_states_frozenset)
+                # Si el estado actual no tiene transición para el símbolo actual, añadir una transición al estado sumidero
+                if not evaluator.current_states:
+                    #transitions.add_transition(current_states_frozenset, symbol, empty_state)
+                    transitions.add_transition(dfa_states[current_states_frozenset], symbol, empty_state)
                 else: 
-                # Si esta en el diccionario y no tiene transicion con symbol -> añado esa transicion al estado sumidero 
-                    dfa_states[state][symbol] = frozenset({empty_state}) # todos los estados seran conjuntos 
+                    # Añadir la transición al diccionario de transiciones
+                    #transitions.add_transition(current_states_frozenset, symbol, new_state)
+                    transitions.add_transition(dfa_states[current_states_frozenset], symbol, new_state)
 
-                # Si el estado no esta en los estados del automata determinista -> lo añado
-                if evaluator.current_states not in new_states and len(evaluator.current_states) > 0 :
-                    new_states.add(new_state)
-                    states_to_check.put(new_state) 
+        # Añadir las transiciones del estado sumidero al estado sumidero
+        dfa_symbols = list()
+        for symbol in finiteAutomaton.symbols:
+            if symbol is not None:  # Ignorar símbolos None si están presentes
+                transitions.add_transition(empty_state, symbol, empty_state)
+                dfa_symbols.append(symbol)
 
-        # Añado las transiciones a los estados del nuevo automata 
-        transitions = Transitions(dfa_states)
-        print(transitions)
+        # Construir el nuevo automata determinista
+        dfa = FiniteAutomaton(finiteAutomaton.initial_state, dfa_states.values(), dfa_symbols, transitions)
+        print(write_dot(dfa)) 
 
-        # Añado las transiciones al estado sumidero 
-        for symbol in finiteAutomaton.symbols: 
-            if symbol == None: continue # No añado la transicion lambda 
-            transitions.add_transition(empty_state, symbol, empty_state)
-        
-        dfa = FiniteAutomaton(initial_state, dfa_states.keys(), finiteAutomaton.symbols, transitions)
-        
         return dfa
-
-
-    
-    
-
 
 
     @staticmethod
