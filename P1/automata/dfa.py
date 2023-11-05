@@ -14,11 +14,10 @@ class DeterministicFiniteAutomaton(FiniteAutomaton):
         initial_state = frozenset(evaluator.current_states)
         
         # Diccionario para guardar la tabla de transiciones 
-        # Va a ser un diccionario de diccionarios 
         dfa_states = dict() 
-
+        # Hacer que los estados tengan un nombre unico 
         # Set de estados para el nuevo automata 
-        new_states = set()
+        new_states = set() 
         new_states.add(initial_state)
         empty_state = State("empty", False) # Estado sumidero 
         new_states.add(empty_state)
@@ -31,11 +30,10 @@ class DeterministicFiniteAutomaton(FiniteAutomaton):
         while not states_to_check.empty():
             # Obtengo el conjunto de estados actual 
             state = states_to_check.get()
-            evaluator.current_states = state 
-            #print(f"Process Symbol Antes {evaluator.current_states}")
+
             for symbol in finiteAutomaton.symbols:
+                evaluator.current_states = state 
                 evaluator.process_symbol(symbol) 
-                #print(f"Process Symbol Despues {evaluator.current_states, symbol}")
 
                 # Si el estado no esta en el diccionario -> lo añado 
                 if state not in dfa_states.keys():
@@ -43,29 +41,28 @@ class DeterministicFiniteAutomaton(FiniteAutomaton):
 
                 if any(symbol in finiteAutomaton.transitions[s] for s in state): 
                     # Añado el nuevo estado al diccionario 
-                    dfa_states[state][symbol] = set(evaluator.current_states)
+                    new_state = frozenset(evaluator.current_states)
+                    dfa_states[state][symbol] = new_state
                 else: 
                 # Si esta en el diccionario y no tiene transicion con symbol -> añado esa transicion al estado sumidero 
-                    dfa_states[state][symbol] = {empty_state} # todos los estados seran conjuntos 
+                    dfa_states[state][symbol] = frozenset({empty_state}) # todos los estados seran conjuntos 
 
                 # Si el estado no esta en los estados del automata determinista -> lo añado
                 if evaluator.current_states not in new_states and len(evaluator.current_states) > 0 :
-                    new_states.add(frozenset(evaluator.current_states))
-                    states_to_check.put(frozenset(evaluator.current_states)) 
+                    new_states.add(new_state)
+                    states_to_check.put(new_state) 
 
         # Añado las transiciones a los estados del nuevo automata 
         transitions = Transitions(dfa_states)
-
-        # Añado las transiciones al estado sumidero 
-        for symbols in finiteAutomaton.symbols: 
-            if symbol == None: continue # No añado la transicion lambda 
-            transitions.add_transition(empty_state, symbol, symbols)
-        
         print(transitions)
 
-        dfa = FiniteAutomaton(initial_state, new_states, finiteAutomaton.symbols, transitions)
+        # Añado las transiciones al estado sumidero 
+        for symbol in finiteAutomaton.symbols: 
+            if symbol == None: continue # No añado la transicion lambda 
+            transitions.add_transition(empty_state, symbol, empty_state)
         
-
+        dfa = FiniteAutomaton(initial_state, dfa_states.keys(), finiteAutomaton.symbols, transitions)
+        
         return dfa
 
 
