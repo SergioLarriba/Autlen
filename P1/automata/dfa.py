@@ -1,6 +1,6 @@
 from automata.automaton import State, Transitions, FiniteAutomaton
 from automata.utils import is_deterministic, write_dot
-import queue
+import re
 
 class DeterministicFiniteAutomaton(FiniteAutomaton):
         
@@ -9,18 +9,35 @@ class DeterministicFiniteAutomaton(FiniteAutomaton):
         from automata.automaton_evaluator import FiniteAutomatonEvaluator
         from queue import Queue
 
-        evaluator = FiniteAutomatonEvaluator(finiteAutomaton)
+        # Funcion para sacar el nombre de un conjunto de estados ordenado 
+        def order_states (states):
+            # Averiguo el nombre del conjunto
+            name = str()
+            for state in states: 
+                name += state.name
+            # Divide la cadena en partes usando expresiones regulares
+            partes = re.findall(r'q\d+', name)
+            # Ordena las partes convirtiendo el número en entero
+            partes_ordenadas = sorted(partes, key=lambda x: int(re.search(r'\d+', x).group()))
+            # Une las partes ordenadas y devuelve el resultado
+            return ''.join(partes_ordenadas)
 
+        evaluator = FiniteAutomatonEvaluator(finiteAutomaton)
         # Estado inicial del automata determinista
         initial_state = frozenset(evaluator.current_states)
-
+        init_state = State(order_states(evaluator.current_states), any(state.is_final for state in evaluator.current_states)) 
         # Conjunto de transiciones del AFD
         transitions = Transitions()
-
+        #import pdb; pdb.set_trace()
         # Diccionario para guardar la tabla de transiciones
         dfa_states = {
-            initial_state: State(' '.join(state.name for state in evaluator.current_states), any(state.is_final for state in initial_state))
+            initial_state: State(order_states(evaluator.current_states), any(state.is_final for state in initial_state))
         }
+        
+        # Simbolos para el automata determinista
+        dfa_symbols = list()
+        for symbol in finiteAutomaton.symbols: 
+            if symbol != 'λ': dfa_symbols.append(symbol)
 
         # Estado sumidero
         empty_state = State("empty", False)
@@ -29,13 +46,13 @@ class DeterministicFiniteAutomaton(FiniteAutomaton):
         # Cola para tratar los estados para procesar
         states_to_check = Queue()
         states_to_check.put(initial_state)
-        #import pdb; pdb.set_trace()
+        
         # Mientras queden estados en la cola
         while not states_to_check.empty():
             # Obtengo el conjunto de estados actual
             current_states_frozenset = states_to_check.get()
 
-            for symbol in finiteAutomaton.symbols:
+            for symbol in dfa_symbols:
                 evaluator.current_states = set(current_states_frozenset)  # Estado actual
                 evaluator.process_symbol(symbol)  # Procesar el símbolo
 
@@ -43,7 +60,7 @@ class DeterministicFiniteAutomaton(FiniteAutomaton):
                 new_states_frozenset = frozenset(evaluator.current_states)
 
                 # Crear un nuevo State object para el nuevo estado
-                new_state = State(' '.join(state.name for state in evaluator.current_states), any(state.is_final for state in evaluator.current_states))
+                new_state = State(order_states(evaluator.current_states), any(state.is_final for state in evaluator.current_states))
 
                 # Añadir el nuevo estado al diccionario si no existe
                 if new_states_frozenset not in dfa_states and evaluator.current_states:
@@ -59,15 +76,11 @@ class DeterministicFiniteAutomaton(FiniteAutomaton):
                     transitions.add_transition(dfa_states[current_states_frozenset], symbol, new_state)
 
         # Añadir las transiciones del estado sumidero al estado sumidero
-        dfa_symbols = list()
         for symbol in finiteAutomaton.symbols:
-            if symbol is not None:  # Ignorar símbolos None si están presentes
-                transitions.add_transition(empty_state, symbol, empty_state)
-                dfa_symbols.append(symbol)
+            if symbol != 'λ': transitions.add_transition(empty_state, symbol, empty_state)
 
         # Construir el nuevo automata determinista
-        dfa = FiniteAutomaton(finiteAutomaton.initial_state, dfa_states.values(), dfa_symbols, transitions)
-        print(write_dot(dfa)) 
+        dfa = FiniteAutomaton(init_state, dfa_states.values(), dfa_symbols, transitions)
 
         return dfa
 

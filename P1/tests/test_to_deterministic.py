@@ -16,11 +16,47 @@ class TestTransform(ABC, unittest.TestCase):
 
         self.assertTrue(equiv_map is not None)
 
+    def test_case1(self):
+        """Test Case 1."""
+        automaton_str = """
+        Automaton:
+        Symbols: 01
+        
+        q0
+        qf final
+        
+        ini q0 -0-> qf
+        qf -1-> qf
+        """
+
+        automaton = AutomataFormat.read(automaton_str)
+
+        expected_str = """
+        Automaton:
+        Symbols: 01
+        
+        q0
+        qf final
+        empty
+        
+        ini q0 -0-> qf
+        q0 -1-> empty
+        qf -0-> empty
+        qf -1-> qf
+        empty -0-> empty
+        empty -1-> empty
+        
+        """
+
+        expected = AutomataFormat.read(expected_str)
+
+        self._check_transform(automaton, expected)
+    #Tests para comprobar lambdas
     def test_case2(self):
         """Test Case 2"""
         automaton_str = """
         Automaton:
-        Symbols: -+λ.d
+        Symbols: -+.d
         
         q0
         q1
@@ -31,7 +67,7 @@ class TestTransform(ABC, unittest.TestCase):
         
         ini q0 ---> q1
         ini q0 -+-> q1
-        ini q0 -λ-> q1
+        ini q0 --> q1
         q1 -d-> q1
         q1 -.-> q2
         q1 -d-> q4
@@ -39,7 +75,7 @@ class TestTransform(ABC, unittest.TestCase):
         q2 -d->q3
         q4 -.->q3
         q3 -d->q3
-        q3 -λ->q5
+        q3 -->q5
         """
 
         automaton = AutomataFormat.read(automaton_str)
@@ -54,23 +90,48 @@ class TestTransform(ABC, unittest.TestCase):
         q2
         q2q3q5 final 
         q3q5 final
+        empty 
         
         ini q0q1 -d-> q1q4
         ini q0q1 ---> q1
         ini q0q1 -+-> q1
         ini q0q1 -.->q2
+
         q1 -d-> q1q4 
-        q1 -.-> q1q4
+        q1 -.-> q2
+        q1 ---> empty
+        q1 -+-> empty
+
         q2 -d-> q3q5
+        q2 ---> empty
+        q2 -+-> empty
+        q2 -.-> empty
+
         q1q4 -d-> q1q4
         q1q4 -.-> q2q3q5
+        q1q4 ---> empty
+        q1q4 -+-> empty
+
         q2q3q5 -d-> q3q5
+        q2q3q5 ---> empty
+        q2q3q5 -+-> empty
+        q2q3q5 -.-> empty
+
         q3q5 -d-> q3q5
+        q3q5 ---> empty
+        q3q5 -+-> empty
+        q3q5 -.-> empty
+
+        empty -+-> empty
+        empty ---> empty
+        empty -d-> empty
+        empty -.-> empty
         """
 
         expected = AutomataFormat.read(expected_str)
 
         self._check_transform(automaton, expected)
 
+    
 if __name__ == '__main__':
     unittest.main()

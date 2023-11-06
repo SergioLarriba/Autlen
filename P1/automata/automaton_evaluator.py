@@ -29,23 +29,23 @@ class FiniteAutomatonEvaluator():
         self.current_states = self._complete_lambdas(current_states)
         
 
-
-
     def process_symbol(self, symbol):
         """
         Process one symbol.
         Args:
             symbol: Symbol to consume. Type: str
-
         """
+
         if symbol not in self.automaton.symbols:
             raise ValueError("The symbol is not in the alphabet of the automaton")
         
         transitions = set()
+
         for i in self.current_states:
             transitions.update(self.automaton.get_transition(i, symbol))
         
         self.current_states = self._complete_lambdas(transitions)
+
         
     def _complete_lambdas(self, set_to_complete, visited=None):
         """
@@ -55,23 +55,7 @@ class FiniteAutomatonEvaluator():
             set_to_complete: Current set of states to be completed.
             visited: Set of states that have already been checked for lambda transitions.
         """
-        #import pdb;pdb.set_trace()
-        """
-        if visited is None:
-            visited = set()
 
-        next_states = set(set_to_complete)
-        for state in set_to_complete:
-            if state not in visited:
-                visited.add(state)
-                if self.automaton.has_transition(state, None):
-                    aux = self.automaton.get_transition(state, None)
-                    for i in aux:
-                        if i not in next_states:
-                            next_states.add(i)
-                            next_states.update(self._complete_lambdas({i}, visited))
-        return next_states
-        """
         final_set = set()
         final_set.update(set_to_complete)
 

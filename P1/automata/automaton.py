@@ -178,6 +178,20 @@ class Transitions(dict):
         return all_transitions
         
     
+    def eliminar_transiciones_obsoletas(self):
+        #Este metodo elimina transiciones que contengan estados que ya no estan
+        transiciones_nuevas = {}
+
+        transiciones_nuevas = self.get_all_transitions
+
+        """
+        for state, transitions in self.transitions.items():
+            if state in self.keys():
+                transiciones_nuevas = state.get
+        """
+        return transiciones_nuevas
+
+    
 
 class FiniteAutomaton():
     """Automaton.
@@ -264,7 +278,31 @@ class FiniteAutomaton():
     
     def get_initial_state(self):
         return self.initial_state 
-    
+
+
+    def eliminar_estados_inaccesibles(self):
+        cola = [self.initial_state]
+        estados_accesibles = set(cola)
+
+        # Hago bfs para encontrar estados inaccesibles
+        while cola:
+            estado_actual = cola.pop()  
+            for symbol in self.symbols:
+                next_state = self.get_transition(estado_actual, symbol)
+                if next_state and next_state not in estados_accesibles:
+                    estados_accesibles.add(next_state)
+                    cola.append(next_state)
+
+        #Elimino estados inaccesibles de la lista de estados
+        self.states = [state for state in self.states if state in estados_accesibles]
+
+        
+        #Elimino transiciones que dependan de estados eliminados
+        self.transitions.eliminar_transiciones_obsoletas(estados_accesibles)
+
+
+
+
     """
     Un automata tiene: estado inicial, final, transicion
     Automaton: tiene una lista de estados [s0, s1, s2] y un objeto: transitions
