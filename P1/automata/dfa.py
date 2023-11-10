@@ -1,26 +1,101 @@
 from automata.automaton import State, Transitions, FiniteAutomaton
 from automata.utils import is_deterministic, write_dot
+from functools import cmp_to_key
 import re
 
+# Funcion que compara 2 estados 
+def comp(state1, state2):
+    state1_name = state1.name.lower()
+    state2_name = state2.name.lower()
+
+    # Criterios: Estado inicial -> 1º, empty -> ultimo
+    if state1_name == "initial": return -1
+    elif state2_name == "initial": return 1
+    if state1_name == "empty": return 1
+    elif state2_name == "empty": return -1
+    if state1_name == "qf" or state1_name == "final": return 1
+    elif state2_name == "qf" or state2_name == "final": return -1
+    
+    # En otro caso
+    if state1_name[1:].isdigit() and state2_name[1:].isdigit():
+        return int(state1_name[1:]) - int(state2_name[1:])
+
+    # Para el caso de que los estados sean letras (A, B...)
+    val_state1 = 0
+    val_state2 = 0
+
+    for i in state1_name:
+        val_state1 += ord(i)
+    for i in state2_name:
+        val_state2 += ord(i)
+    
+    return val_state1 - val_state2 
+
+# Creamos un estado a partir de un conjunto de estados -> La usamos en to_minimized
+def state_create(set_states):
+    list_states = list(set_states)
+    # Lista de estados ordenada usando el comparador anterior
+    sorted_state_list = sorted(list_states, key=cmp_to_key(comp))
+    # Nombre del estado
+    name = str()
+    final = False
+
+    # Si los estados son A, B, C no tienen un numero asociado
+    letters = False
+    if sorted_state_list[0].name[1:0].isdigit():
+        letters = True
+    
+    for state in sorted_state_list:
+        # Junto el nombre de todos los estados
+        if letters: name += "q" + state.name[1:] + ","
+        else: name += state.name 
+
+        # Si alguno de los estados es final, el estado tambien lo es
+        if state.is_final: final = True
+    
+    # Elimino la ultima coma
+    if letters: name = name[:-1]
+
+    return State(name, final) 
+
+# Funcion para sacar el nombre de un conjunto de estados ordenado 
+def order_states (states):
+    # Averiguo el nombre del conjunto
+    name = str()
+    for state in states: 
+        name += state.name
+    # Divide la cadena en partes usando expresiones regulares
+    partes = re.findall(r'q\d+', name)
+    # Ordena las partes convirtiendo el número en entero
+    partes_ordenadas = sorted(partes, key=lambda x: int(re.search(r'\d+', x).group()))
+    # Une las partes ordenadas y devuelve el resultado
+    return ''.join(partes_ordenadas)
+
+# Funcion para comprobar si un automata es determinista
+def is_deterministic(finiteAutomaton):
+    for state in finiteAutomaton.states:
+        for symbol in finiteAutomaton.symbols:
+            # Sin transicion para el simbolo
+            if len(finiteAutomaton.transitions.get_transition(state, symbol)) == 0:
+                return False
+            # Varias transiciones para el mismo simbolo
+            n_transitions = len(finiteAutomaton.transitions.get_transition(state, symbol))
+            if n_transitions > 1:
+                return False
+            
+            
+    return True
+
 class DeterministicFiniteAutomaton(FiniteAutomaton):
-        
+            
     @staticmethod
     def to_deterministic(finiteAutomaton):
         from automata.automaton_evaluator import FiniteAutomatonEvaluator
         from queue import Queue
 
-        # Funcion para sacar el nombre de un conjunto de estados ordenado 
-        def order_states (states):
-            # Averiguo el nombre del conjunto
-            name = str()
-            for state in states: 
-                name += state.name
-            # Divide la cadena en partes usando expresiones regulares
-            partes = re.findall(r'q\d+', name)
-            # Ordena las partes convirtiendo el número en entero
-            partes_ordenadas = sorted(partes, key=lambda x: int(re.search(r'\d+', x).group()))
-            # Une las partes ordenadas y devuelve el resultado
-            return ''.join(partes_ordenadas)
+        # Si el automata ya es determinista lo devolvemos
+        if is_deterministic(finiteAutomaton):
+            return finiteAutomaton
 
         evaluator = FiniteAutomatonEvaluator(finiteAutomaton)
         # Estado inicial del automata determinista
@@ -92,36 +167,138 @@ class DeterministicFiniteAutomaton(FiniteAutomaton):
         Returns:
             Equivalent minimal automaton.
         """
-
-        """
-        Explicacion del algoritmo:
-        1 - Comprobar que el automata sea determinista -> que sea de la clase DeterministicFiniteAutomaton
-        2 - Eliminar estados inaccesibles 
-            - Hacemos una busqueda en anchura (coger una pila, meto los nodos en la pila, los voy sacando, los marco como visitados en una lista de visitiados, mirar si la lista de visitados es igual a la de estados, y si no lo es, eliminamos los estados que no esten) desde el estado inicial, para ver a cuales llego
-              a los que no llegue, son estados inaccesibles, asi que lo eliminamos
-        3 - Comienza la minimizacion 
-            3.1 - Se basa en clases de equivalencia, tenemos una lista con clases de equivalencia en cada iteracion -> vamos a empezar con una tabla
-                  de la siguiente forma: ponemos 1 si es estado final y 0 si no. 
-            3.2 - Cogemos el primer estado, le ponemos un 0, comparamos el A con el resto de estados
-                        - Equivalente a la iteracion anterior (i-1)
-                        - Transite a equivalente
-                        Ej: B, no tiene clase de equiv -> podemos revisarla
-                            como la A y B tienen un 0 en la iteracion anterior -> son equivalentes
-                            miro las transiciones de la B -> B y G tienen la misma clase de equivalencia( 0 = 0)
-                                                            hago lo mismo con C...
-
-                            asi todo el rato hasta quedarme si estados para revisar...
-
-             3.3 - Una vez que hemos mirado todos los estados a los que llego desde ese estado (A), paso al siguiente estado que no tenga clase de equivalencia
-             3.4 - Repito los 2 pasos anteriores hasta que todos los nodos tengan clase de equivalencia  
-             3.5 - Una vez que tengo todos los estados con clases de equivalencia, 3.2, 3.3, 3.4 -> Todo esto es una iteracion
-             3.6 - Finaliza la funcion si iteracion actual = iteracion anterior (iteracion actual - 1) 
-        """
-        #---------------------------------------------------------------------
-        # TO DO: Implement this method...
+        from queue import Queue
+        from automata.automaton_evaluator import FiniteAutomatonEvaluator
+        evaluator = FiniteAutomatonEvaluator(dfa) # Conjunto de estados actual
+        previous = FiniteAutomatonEvaluator(dfa) # Estado del que vengo al llegar al actual 
         
-        #---------------------------------------------------------------------
-        raise NotImplementedError("This method must be implemented.")
+        # Verifica que el automata sea determinista
+        # if not isinstance(dfa, DeterministicFiniteAutomaton):
+            # raise ValueError("El autómata no es determinista")
 
+        # Eliminacion estados inaccesibles usando BFS 
+        q = Queue()
+        q.put(evaluator.current_states)
+        accesible_states = set()
+        accesible_states.add(dfa.initial_state)
+        while not q.empty():
+            state = q.get()
+            for sym in dfa.symbols:
+                evaluator.current_states = state
+                evaluator.process_symbol(sym)
+                if len(evaluator.current_states) > 0:
+                    flag_addqueue=False
+                    for next_state in evaluator.current_states:
+                        if next_state not in accesible_states:
+                            if not flag_addqueue:
+                                q.put(evaluator.current_states)
+                                flag_addqueue=True
+                            accesible_states.add(next_state)
+        
+        accesible_states_list = sorted(list(accesible_states), key=cmp_to_key(comp))
 
+        ############################### CLASES DE EQUIVALENCIA #########################################
+        
+        # Usamos una matriz para guardar las clases de equivalencia: fila 0 -> estados, fila 1 -> clases de equivalencia (1º Iteración)
+        matrix = [list(state for state in accesible_states_list)]                      # Primera fila 
+        matrix.append([1 if state.is_final else 0 for state in accesible_states_list]) # Segunda fila 
+        # Recorremos la tabla de izqda a dcha y asignamos la clase 0 al primer estado sin clase de equivalencia 
+        matrix.append([None] * len(matrix[0])) # Añadimos una fila vacia para las iteraciones 
+        #import pdb; pdb.set_trace() 
+        while True:
+            counter_classes = 0
+            
+            for j in range(len(accesible_states_list)):  
+                # 1º Iteracion -> Asdignamos la clase 0 al primer estado sin clase de equivalencia
+                if matrix[2][j] == None: 
+                    matrix[2][j] = counter_classes
+                    counter_classes += 1
+
+                    # Comparamos las transiciones 
+                    for i in range(1, len(accesible_states_list)):
+                        same_class = True # Flag para saber si todos los estados de la clase son equivalentes
+                        # 1º Requisito -> El estado siguiente no puede tener clase de equivalencia asignada 
+                        if matrix[2][i] == None: 
+                            # 2º Requisito -> La clase de equivalencia en la iteracion anterior dene ser igual
+                            if matrix[1][i] == matrix[1][j]:
+                                for symbol in dfa.symbols: 
+                                    # 3º requisito -> Las transiciones deben ser equivalentes 
+                                    previous.current_states = {accesible_states_list[j]}
+                                    evaluator.current_states = {accesible_states_list[i]}
+                                    # Obtenemos transiciones 
+                                    previous.process_symbol(symbol)
+                                    evaluator.process_symbol(symbol)
+                                    # Obtenemos el estado (sin conjunto)
+                                    previous_state = previous.current_states.pop()
+                                    actual_state = evaluator.current_states.pop()
+                                    # Verificamos si las clases coniciden 
+                                    if matrix[1][accesible_states_list.index(previous_state)] != matrix[1][accesible_states_list.index(actual_state)]:
+                                        same_class = False
+                                        break
+                                    
+                                # Si cumple los 3 requisitos => son equivalentes => asignamos la misma clase de equivalencia
+                                if same_class:
+                                    matrix[2][i] = matrix[2][j]
+            
+            # CONDICION DE PARADA DEL ALGORITMO => si las filas son iguales, paramos
+            if matrix[1] == matrix[2]:
+                break
+            else: 
+                # Si no, la 3º fila se convierte en la segunda 
+                for i in range(len(accesible_states_list)):
+                    matrix[1][i] = matrix[2][i]
+                    matrix[2][i] = None
+
+        ############################# CONSTRUCCION DEL AUTOMATA MINIMIZADO ############################# 
+        # Estados 
+        first_row = [matrix[1][i] for i in range(len(matrix[0]))]
+        first_row.sort(reverse=True) # Ordenamos la primera lista de mayor a menor (decreciente)
+        new_states_tam = int(first_row[0]) + 1 # Numero de estados del automata minimizado
+
+        new_minimized_states = [set() for i in range(new_states_tam)] 
+        for i in range(len(accesible_states_list)):
+            new_minimized_states[matrix[1][i]].add(accesible_states_list[i])
+        final_minimized_states = set() 
+
+        # Transiciones 
+        transitions_dict = dict()
+        for i in range(new_states_tam):
+            # Creamos el estado
+            state = state_create(new_minimized_states[i]) 
+            final_minimized_states.add(state)
+
+            transitions_dict[state] = dict()
+            for symbol in dfa.symbols: 
+                # Averiguamos todas las transiciones 
+                evaluator.current_states = new_minimized_states[i]
+                evaluator.process_symbol(symbol)
+                transitions_dict[state][symbol] = set()
+
+                # Si no esta en el set de estados 
+                if evaluator.current_states not in new_minimized_states:
+                    # Averiguamos el estado solo 
+                    current_state = evaluator.current_states.pop()
+                    evaluator.current_states = new_minimized_states[matrix[1][accesible_states_list.index(current_state)]]
+
+                # Añadimos el estado 
+                transitions_dict[state][symbol].add(state_create(evaluator.current_states)) 
+        
+        transitions = Transitions(transitions_dict)
+
+        minimized_automaton = FiniteAutomaton(state_create(new_minimized_states[0]), 
+                                              final_minimized_states, 
+                                              dfa.symbols, 
+                                              transitions)
+        
+        return minimized_automaton 
     
+        
+
+        
+
+           
+    
+        
+
+
+     
