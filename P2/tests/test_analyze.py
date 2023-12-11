@@ -79,6 +79,7 @@ class TestAnalyze(unittest.TestCase):
         self._check_analyze(table, "i*i", "E", exception=SyntaxError)
         self._check_analyze(table, "+i*i", "E", exception=SyntaxError)
 
+
     def test_case2(self) -> None:
         """Test for syntax analysis from grammar."""
         grammar_str = """

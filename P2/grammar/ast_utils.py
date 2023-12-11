@@ -37,7 +37,7 @@ class ASTNestedIfCounter(NodeVisitor):
         self.count+=1
 
         # explora el if
-        for field, value in iter_fields(node):
+        for _, value in iter_fields(node):
             if isinstance(value, list):
                 for item in value:
                     # si encuentra otro if, explora el if 

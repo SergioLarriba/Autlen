@@ -1,8 +1,14 @@
+"""
+Practica 2. Automatas y Lenguajes
+Autlen 
+Fecha: 04/12/2023 
+Autores: Sergio Larriba, Javier Valero 
+"""
+
 from __future__ import annotations
 
 import copy
 from typing import AbstractSet, Collection, Optional, Dict, List, Optional
-
 
 class RepeatedCellError(Exception):
     """Exception for repeated cells in LL(1) tables."""
@@ -12,15 +18,13 @@ class SyntaxError(Exception):
     """Exception for parsing errors."""
 
 
+# Busca todas las ocurrencias de un substring en un string dado 
 def find_all_strings(substring, string):
-    """
-    Está pensado para iterar en un bucle
-    mediante yield en vez de return
-    """
-
+    # Buscamos la primero ocurrencia de la subcadena en la cadena -> find devuelve el indice de la primera ocurrencia 
     i = string.find(substring)
+    # Mientras que haya ocurrencias 
     while i != -1:
-        yield i
+        yield i # Devuelve el indice actual de la subcadena 
         i = string.find(substring, i+1)
 
 
@@ -93,15 +97,39 @@ class Grammar:
             f"productions={self.productions!r})"
         )
 
+    # Método para iterar sobre las producciones de la gramática 
     def _for_all_productions(self, func: function, new_table: dict, old_table: dict = None):
         """
-        Método general para iterar sobre las producciones de la gramática
+        Method to iterate over the productions of the grammar.
+
+        Args:
+            func: function to be applied to each production.
+            new_table: new table to be filled.
+            old_table: old table to be used.
+        
+        Returns:
+            None
         """
+        # Iteramos sobre los simbolos no terminales en la gramatica
         for nt in self.non_terminals:
+            # Iteramos sobre las producciones de cada simbolo no terminal y aplicamos la funcion 
             for p in self.productions[nt]:
                 func(nt,p,new_table,old_table)
 
+    # Método para calcular los primeros de una producción 
     def _production_firsts(self, nt: str, p: str,new_table: dict, old_table: dict):
+        """
+        Method to compute the first set of a production.
+
+        Args:
+            nt: non-terminal symbol.
+            p: production.
+            new_table: new table to be filled.
+            old_table: old table to be used.
+        
+        Returns:
+            None
+        """
         stop = False
         i = 0
         
@@ -109,12 +137,14 @@ class Grammar:
         if p == '':
             new_table[nt].add('')
         
+        # Recorremos cada simbolo de la produccion 
         while i < len(p) and not stop:
-
+            # Si es un terminal ->  lo añadimos al conjunto de primeros de nt y paramos
             if p[i] in self.terminals:
                 # Primero(t) = {t}
                 stop = True
                 new_table[nt].add(p[i])
+            # Si es un no terminal -> añadimos los primeros de ese no terminal a los primeros de nt
             elif p[i] in self.non_terminals:
                 next_first = copy.deepcopy(old_table[p[i]])
 
@@ -129,14 +159,33 @@ class Grammar:
 
             i += 1
 
+    # Comparador de tablas 
     def _tables_equal(self, old_table:dict,new_table:dict):
+        """
+        Method to compare two tables.
+
+        Args: 
+            old_table: old table to be used.
+            new_table: new table to be filled.
+        
+        Returns:
+            True if the tables are equal, False otherwise.
+        """
         for nt in old_table.keys():
             if old_table[nt] != new_table[nt]:
                 return False
         
         return True
 
+    # Método para calcular los primeros de los no terminales
     def _compute_firsts(self) -> Dict[str, set[str]]:
+        """
+        Method to compute the first set of each non-terminal symbol.
+
+        Returns:
+            Dictionary with the first set of each non-terminal symbol.
+        """
+        # Inicializamos el diccionario vacio y equals como False 
         old_table: Dict[str, set[str]] = dict()
         equals = False
         # Creamos las entradas de la tabla
@@ -145,8 +194,9 @@ class Grammar:
 
         # Iteramos sobre la tabla
         while not equals:
+            # Copiamos old_table a new_table
             new_table = copy.deepcopy(old_table)
-            
+            # Aplicamos la funcion a cada produccion actualizando new_table con los resultados 
             self._for_all_productions(
                 self._production_firsts, new_table, old_table
             )
@@ -168,6 +218,8 @@ class Grammar:
         Returns:
             First set of str.
         """
+
+        # TO-DO: Complete this method for exercise 3...
 
         # Caso de λ
         if sentence == "":
@@ -206,6 +258,18 @@ class Grammar:
         return firsts
 
     def _production_follows(self, nt: str, p: str, new_table: dict, old_table: dict):
+        """
+        Method to compute the follow set of a production.
+
+        Args:
+            nt: non-terminal symbol.
+            p: production.
+            new_table: new table to be filled.
+            old_table: old table to be used.
+        
+        Returns:
+            None
+        """
         for cn in old_table.keys():
             for i in find_all_strings(cn, p):
                 i += 1          # Para mirar al siguiente símbolo
@@ -232,6 +296,12 @@ class Grammar:
                     i += 1
 
     def _compute_follows(self):
+        """
+        Method to compute the follow set of each non-terminal symbol.
+
+        Returns:
+            Dictionary with the follow set of each non-terminal symbol.
+        """
         old_table: Dict[str, set[str]] = dict()
         equals = False
 
@@ -281,6 +351,18 @@ class Grammar:
             raise ValueError("Symbol is not non-terminal in grammar")
 
     def _production_ll1_table(self, nt: str, p: str, new_table: LL1Table, old_table = None):
+        """
+        Method to compute the LL(1) table for a production.
+
+        Args:
+            nt: non-terminal symbol.
+            p: production.
+            new_table: new table to be filled.
+            old_table: old table to be used.
+        
+        Returns:
+            None
+        """
         first_p = self.compute_first(p)
 
         # Probamos a ver si los terminales están
